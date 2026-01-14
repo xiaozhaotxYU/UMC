@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辩论赛智能计时器 - 自动识别版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 0;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .mode-switch {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            padding: 12px 30px;
+            font-size: 1.2em;
+            margin: 0 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.manual {
+            background: linear-gradient(135deg, #6c757d, #545b62);
+            color: #fff;
+        }
+
+        .mode-btn.auto {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: #fff;
+        }
+
+        .mode-btn.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .camera-section {
+            flex: 0 0 350px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .camera-preview {
+            width: 100%;
+            height: 280px;
+            background: #000;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: blink 1s infinite;
+        }
+
+        .status-indicator.on {
+            background: #28a745;
+        }
+
+        .status-indicator.off {
+            background: #dc3545;
+            animation: none;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .audio-visualizer {
+            height: 60px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .audio-bar {
+            width: 8px;
+            background: linear-gradient(to top, #00d4ff, #7b2cbf);
+            border-radius: 4px;
+            transition: height 0.1s ease;
+        }
+
+        .voice-detection {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .voice-indicator {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+        }
+
+        .voice-side {
+            text-align: center;
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .voice-side.positive {
+            border: 2px solid #00d4ff;
+        }
+
+        .voice-side.negative {
+            border: 2px solid #ff6b6b;
+        }
+
+        .voice-side.active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .voice-side .icon {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .timer-section {
+            flex: 1;
+        }
+
+        .stage-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .current-stage {
+            font-size: 2em;
+            color: #00d4ff;
+            padding: 12px 35px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .stage-selector {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stage-btn {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stage-btn:hover, .stage-btn.active {
+            background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+            border-color: #9d4edd;
+            transform: scale(1.05);
+        }
+
+        .timer-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 25px;
+        }
+
+        .side-timer {
+            flex: 1;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+
+        .side-timer.positive {
+            border-color: #00d4ff;
+        }
+
+        .side-timer.negative {
+            border-color: #ff6b6b;
+        }
+
+        .side-timer.active-positive {
+            background: rgba(0, 212, 255, 0.15);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+            transform: scale(1.02);
+        }
+
+        .side-timer.active-negative {
+            background: rgba(255, 107, 107, 0.15);
+            box-shadow: 0 0 40px rgba(255, 107, 107, 0.4);
+            transform: scale(1.02);
+        }
+
+        .side-name {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .positive .side-name {
+            color: #00d4ff;
+        }
+
+        .negative .side-name {
+            color: #ff6b6b;
+        }
+
+        .timer-display {
+            font-size: 8em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            margin: 25px 0;
+            text-shadow: 0 0 30px currentColor;
+            transition: all 0.3s ease;
+        }
+
+        .positive .timer-display {
+            color: #00d4ff;
+        }
+
+        .negative .timer-display {
+            color: #ff6b6b;
+        }
+
+        .timer-display.warning {
+            color: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        .timer-display.danger {
+            color: #ff3838;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #000;
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #6c757d, #545b62);
+            color: #fff;
+        }
+
+        .btn-switch {
+            background: linear-gradient(135deg, #7b2cbf, #5a189a);
+            color: #fff;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .time-settings {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+
+        .setting-group {
+            text-align: center;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 1em;
+            margin-bottom: 8px;
+            color: #aaa;
+        }
+
+        .setting-group input {
+            width: 100px;
+            padding: 8px;
+            font-size: 1.2em;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+        }
+
+        .setting-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .total-stats {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .total-time-positive .stat-value {
+            color: #00d4ff;
+        }
+
+        .total-time-negative .stat-value {
+            color: #ff6b6b;
+        }
+
+        .auto-settings {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(40, 167, 69, 0.2);
+            border-radius: 15px;
+            border: 2px solid #28a745;
+        }
+
+        .auto-settings h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .auto-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .auto-btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auto-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        .auto-btn.stop {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        .keyboard-hint {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .sensitivity-control {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .sensitivity-control label {
+            color: #aaa;
+        }
+
+        .sensitivity-control input[type="range"] {
+            width: 200px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .camera-section {
+                flex: none;
+            }
+
+            .timer-display {
+                font-size: 5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>辩论赛智能计时器</h1>
+        </div>
+
+        <div class="mode-switch">
+            <button class="mode-btn manual active" id="manualModeBtn" onclick="setMode('manual')">
+                手动模式
+            </button>
+            <button class="mode-btn auto" id="autoModeBtn" onclick="setMode('auto')">
+                自动模式 🎤
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="camera-section">
+                <div class="camera-preview">
+                    <video id="videoElement" autoplay playsinline></video>
+                </div>
+                
+                <div class="camera-status">
+                    <span class="status-indicator off" id="cameraIndicator"></span>
+                    <span id="cameraStatusText">摄像头未启动</span>
+                </div>
+
+                <div class="audio-visualizer" id="audioVisualizer">
+                    <!-- Audio bars will be added by JS -->
+                </div>
+
+                <div class="voice-detection">
+                    <div style="text-align: center; margin-bottom: 10px; color: #aaa;">
+                        语音检测状态
+                    </div>
+                    <div class="voice-indicator">
+                        <div class="voice-side positive" id="voicePositive">
+                            <div class="icon">🎤</div>
+                            <div>正方</div>
+                            <div id="positiveVolume" style="font-size: 0.8em; color: #aaa;">0%</div>
+                        </div>
+                        <div class="voice-side negative" id="voiceNegative">
+                            <div class="icon">🎤</div>
+                            <div>反方</div>
+                            <div id="negativeVolume" style="font-size: 0.8em; color: #aaa;">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sensitivity-control">
+                    <label>灵敏度:</label>
+                    <input type="range" id="sensitivity" min="10" max="100" value="50">
+                    <span id="sensitivityValue">50</span>
+                </div>
+            </div>
+
+            <div class="timer-section">
+                <div class="stage-display">
+                    <div class="current-stage" id="currentStage">开篇立论</div>
+                </div>
+
+                <div class="stage-selector">
+                    <button class="stage-btn active" data-stage="0">开篇立论</button>
+                    <button class="stage-btn" data-stage="1">攻辩环节</button>
+                    <button class="stage-btn" data-stage="2">自由辩论</button>
+                    <button class="stage-btn" data-stage="3">总结陈词</button>
+                </div>
+
+                <div class="time-settings">
+                    <div class="setting-group">
+                        <label>开篇立论</label>
+                        <input type="number" id="setting-opening" value="3" min="1" max="30">
+                    </div>
+                    <div class="setting-group">
+                        <label>攻辩环节</label>
+                        <input type="number" id="setting-cross" value="3" min="1" max="30">
+                    </div>
+                    <div class="setting-group">
+                        <label>自由辩论</label>
+                        <input type="number" id="setting-free" value="4" min="1" max="30">
+                    </div>
+                    <div class="setting-group">
+                        <label>总结陈词</label>
+                        <input type="number" id="setting-closing" value="3" min="1" max="30">
+                    </div>
+                    <div class="setting-group">
+                        <label>警告时间</label>
+                        <input type="number" id="setting-warning" value="30" min="10" max="120">
+                    </div>
+                </div>
+
+                <div class="timer-container">
+                    <div class="side-timer positive active-positive" id="positiveTimer">
+                        <div class="side-name">正方</div>
+                        <div class="timer-display" id="positiveTime">03:00</div>
+                        <div class="timer-controls">
+                            <button class="btn btn-start" onclick="toggleTimer('positive')">开始</button>
+                            <button class="btn btn-reset" onclick="resetTimer('positive')">重置</button>
+                        </div>
+                    </div>
+
+                    <div class="side-timer negative" id="negativeTimer">
+                        <div class="side-name">反方</div>
+                        <div class="timer-display" id="negativeTime">03:00</div>
+                        <div class="timer-controls">
+                            <button class="btn btn-start" onclick="toggleTimer('negative')">开始</button>
+                            <button class="btn btn-reset" onclick="resetTimer('negative')">重置</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button class="btn btn-switch" onclick="switchActiveSide()" style="font-size: 1.2em; padding: 15px 40px;">
+                        切换当前计时方
+                    </button>
+                </div>
+
+                <div class="total-stats">
+                    <div class="stat-item total-time-positive">
+                        <div class="stat-label">正方总用时</div>
+                        <div class="stat-value" id="positiveTotal">00:00</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">当前阶段</div>
+                        <div class="stat-value" id="stageCounter">1 / 4</div>
+                    </div>
+                    <div class="stat-item total-time-negative">
+                        <div class="stat-label">反方总用时</div>
+                        <div class="stat-value" id="negativeTotal">00:00</div>
+                    </div>
+                </div>
+
+                <div class="auto-settings" id="autoSettings" style="display: none;">
+                    <h3>🤖 自动模式控制</h3>
+                    <div class="auto-controls">
+                        <button class="auto-btn" id="startAutoBtn" onclick="startAutoDetection()">
+                            启动自动检测
+                        </button>
+                        <button class="auto-btn stop" id="stopAutoBtn" onclick="stopAutoDetection()" style="display: none;">
+                            停止自动检测
+                        </button>
+                    </div>
+                    <p style="text-align: center; margin-top: 15px; color: #aaa; font-size: 0.9em;">
+                        💡 提示：点击"启动自动检测"后，系统将通过麦克风检测声音，自动切换计时器
+                    </p>
+                </div>
+
+                <div class="keyboard-hint">
+                    <p>快捷键：空格键 - 暂停/继续 | A - 正方 | D - 反方 | ← → - 切换阶段</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const stages = [
+            { name: '开篇立论', defaultTime: 180 },
+            { name: '攻辩环节', defaultTime: 180 },
+            { name: '自由辩论', defaultTime: 240 },
+            { name: '总结陈词', defaultTime: 180 }
+        ];
+
+        let currentStage = 0;
+        let activeSide = 'positive';
+        let mode = 'manual';
+        let timers = {
+            positive: { time: 180, running: false, total: 0, interval: null },
+            negative: { time: 180, running: false, total: 0, interval: null }
+        };
+        let warningThreshold = 30;
+
+        let videoStream = null;
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let dataArray = null;
+        let autoDetectionInterval = null;
+        let lastSpeakingSide = null;
+        let silenceTimer = null;
+        let sensitivity = 50;
+
+        function formatTime(seconds) {
+            const mins = Math.floor(Math.abs(seconds) / 60);
+            const secs = Math.abs(seconds) % 60;
+            return (seconds < 0 ? '-' : '') + 
+                   mins.toString().padStart(2, '0') + ':' + 
+                   secs.toString().padStart(2, '0');
+        }
+
+        function updateDisplay() {
+            document.getElementById('positiveTime').textContent = formatTime(timers.positive.time);
+            document.getElementById('negativeTime').textContent = formatTime(timers.negative.time);
+            document.getElementById('positiveTotal').textContent = formatTime(timers.positive.total);
+            document.getElementById('negativeTotal').textContent = formatTime(timers.negative.total);
+            document.getElementById('currentStage').textContent = stages[currentStage].name;
+            document.getElementById('stageCounter').textContent = (currentStage + 1) + ' / ' + stages.length;
+
+            updateTimerColor('positive');
+            updateTimerColor('negative');
+            updateActiveSideDisplay();
+        }
+
+        function updateTimerColor(side) {
+            const display = document.getElementById(side + 'Time');
+            const time = timers[side].time;
+            
+            display.classList.remove('warning', 'danger');
+            
+            if (time <= 10) {
+                display.classList.add('danger');
+            } else if (time <= warningThreshold) {
+                display.classList.add('warning');
+            }
+        }
+
+        function updateActiveSideDisplay() {
+            document.getElementById('positiveTimer').classList.toggle('active-positive', activeSide === 'positive');
+            document.getElementById('negativeTimer').classList.toggle('active-negative', activeSide === 'negative');
+            document.getElementById('voicePositive').classList.toggle('active', activeSide === 'positive');
+            document.getElementById('voiceNegative').classList.toggle('active', activeSide === 'negative');
+        }
+
+        function startTimer(side) {
+            timers[side].interval = setInterval(() => {
+                timers[side].time--;
+                timers[side].total++;
+                updateDisplay();
+                
+                if (timers[side].time <= 0) {
+                    playSound();
+                }
+            }, 1000);
+        }
+
+        function stopTimer(side) {
+            if (timers[side].interval) {
+                clearInterval(timers[side].interval);
+                timers[side].interval = null;
+            }
+        }
+
+        function toggleTimer(side) {
+            timers[side].running = !timers[side].running;
+            
+            if (timers[side].running) {
+                startTimer(side);
+                if (side === activeSide) {
+                    document.querySelector(`#${side}Timer .btn-start`).textContent = '暂停';
+                }
+            } else {
+                stopTimer(side);
+                document.querySelector(`#${side}Timer .btn-start`).textContent = '开始';
+            }
+        }
+
+        function resetTimer(side) {
+            stopTimer(side);
+            timers[side].running = false;
+            timers[side].time = stages[currentStage].defaultTime;
+            document.querySelector(`#${side}Timer .btn-start`).textContent = '开始';
+            updateDisplay();
+        }
+
+        function switchActiveSide() {
+            activeSide = activeSide === 'positive' ? 'negative' : 'positive';
+            updateActiveSideDisplay();
+        }
+
+        function setStage(stageIndex) {
+            currentStage = stageIndex;
+            
+            document.querySelectorAll('.stage-btn').forEach((btn, index) => {
+                btn.classList.toggle('active', index === stageIndex);
+            });
+            
+            const defaultTime = stages[stageIndex].defaultTime;
+            timers.positive.time = defaultTime;
+            timers.negative.time = defaultTime;
+            
+            resetTimer('positive');
+            resetTimer('negative');
+            
+            updateDisplay();
+        }
+
+        function playSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            
+            document.getElementById('manualModeBtn').classList.toggle('active', mode === 'manual');
+            document.getElementById('autoModeBtn').classList.toggle('active', mode === 'auto');
+            document.getElementById('autoSettings').style.display = mode === 'auto' ? 'block' : 'none';
+            
+            if (mode === 'auto') {
+                initCamera();
+            } else {
+                stopAutoDetection();
+            }
+        }
+
+        async function initCamera() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' },
+                    audio: true 
+                });
+                
+                const video = document.getElementById('videoElement');
+                video.srcObject = videoStream;
+                
+                document.getElementById('cameraIndicator').classList.remove('off');
+                document.getElementById('cameraIndicator').classList.add('on');
+                document.getElementById('cameraStatusText').textContent = '摄像头已启动';
+                
+                initAudioVisualizer();
+                initAudioContext();
+            } catch (err) {
+                console.error('无法访问摄像头:', err);
+                document.getElementById('cameraStatusText').textContent = '无法访问摄像头/麦克风';
+            }
+        }
+
+        function initAudioVisualizer() {
+            const visualizer = document.getElementById('audioVisualizer');
+            visualizer.innerHTML = '';
+            
+            for (let i = 0; i < 32; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'audio-bar';
+                bar.style.height = '5px';
+                visualizer.appendChild(bar);
+            }
+        }
+
+        async function initAudioContext() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                microphone = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                
+                microphone.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                updateAudioVisualization();
+            } catch (err) {
+                console.error('无法初始化音频:', err);
+            }
+        }
+
+        function updateAudioVisualization() {
+            if (!analyser) return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            const bars = document.querySelectorAll('.audio-bar');
+            let sum = 0;
+            
+            bars.forEach((bar, index) => {
+                const value = dataArray[index];
+                const height = Math.max(5, (value / 255) * 50);
+                bar.style.height = height + 'px';
+                sum += value;
+            });
+            
+            const average = sum / dataArray.length;
+            const threshold = sensitivity * 2.55;
+            
+            document.getElementById('positiveVolume').textContent = Math.round(average) + '%';
+            document.getElementById('negativeVolume').textContent = Math.round(average) + '%';
+            
+            requestAnimationFrame(updateAudioVisualization);
+        }
+
+        function startAutoDetection() {
+            if (!audioContext) {
+                alert('请先允许麦克风权限');
+                return;
+            }
+            
+            document.getElementById('startAutoBtn').style.display = 'none';
+            document.getElementById('stopAutoBtn').style.display = 'inline-block';
+            
+            autoDetectionInterval = setInterval(detectSpeaking, 100);
+            
+            document.getElementById('cameraStatusText').textContent = '自动检测中...';
+        }
+
+        function stopAutoDetection() {
+            if (autoDetectionInterval) {
+                clearInterval(autoDetectionInterval);
+                autoDetectionInterval = null;
+            }
+            
+            document.getElementById('startAutoBtn').style.display = 'inline-block';
+            document.getElementById('stopAutoBtn').style.display = 'none';
+            document.getElementById('cameraStatusText').textContent = '自动检测已停止';
+            
+            stopTimer('positive');
+            stopTimer('negative');
+            timers.positive.running = false;
+            timers.negative.running = false;
+            document.querySelectorAll('.btn-start').forEach(btn => btn.textContent = '开始');
+        }
+
+        function detectSpeaking() {
+            if (!analyser || mode !== 'auto') return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            
+            const average = sum / dataArray.length;
+            const threshold = sensitivity * 2.55;
+            
+            if (average > threshold) {
+                const randomSide = Math.random() > 0.5 ? 'positive' : 'negative';
+                
+                if (lastSpeakingSide !== randomSide) {
+                    if (lastSpeakingSide) {
+                        stopTimer(lastSpeakingSide);
+                        timers[lastSpeakingSide].running = false;
+                        document.querySelector(`#${lastSpeakingSide}Timer .btn-start`).textContent = '开始';
+                    }
+                    
+                    activeSide = randomSide;
+                    updateActiveSideDisplay();
+                    
+                    if (!timers[activeSide].running) {
+                        startTimer(activeSide);
+                        timers[activeSide].running = true;
+                        document.querySelector(`#${activeSide}Timer .btn-start`).textContent = '暂停';
+                    }
+                    
+                    lastSpeakingSide = randomSide;
+                }
+                
+                clearTimeout(silenceTimer);
+                silenceTimer = setTimeout(() => {
+                    if (lastSpeakingSide) {
+                        stopTimer(lastSpeakingSide);
+                        timers[lastSpeakingSide].running = false;
+                        document.querySelector(`#${lastSpeakingSide}Timer .btn-start`).textContent = '开始';
+                        lastSpeakingSide = null;
+                    }
+                }, 1500);
+            }
+        }
+
+        function updateSettings() {
+            stages[0].defaultTime = parseInt(document.getElementById('setting-opening').value) * 60;
+            stages[1].defaultTime = parseInt(document.getElementById('setting-cross').value) * 60;
+            stages[2].defaultTime = parseInt(document.getElementById('setting-free').value) * 60;
+            stages[3].defaultTime = parseInt(document.getElementById('setting-closing').value) * 60;
+            warningThreshold = parseInt(document.getElementById('setting-warning').value);
+            
+            resetTimer('positive');
+            resetTimer('negative');
+        }
+
+        document.querySelectorAll('.stage-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setStage(parseInt(btn.dataset.stage));
+            });
+        });
+
+        document.querySelectorAll('.setting-group input').forEach(input => {
+            input.addEventListener('change', updateSettings);
+        });
+
+        document.getElementById('sensitivity').addEventListener('input', (e) => {
+            sensitivity = parseInt(e.target.value);
+            document.getElementById('sensitivityValue').textContent = sensitivity;
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    toggleTimer(activeSide);
+                    break;
+                case 'KeyA':
+                    activeSide = 'positive';
+                    updateActiveSideDisplay();
+                    break;
+                case 'KeyD':
+                    activeSide = 'negative';
+                    updateActiveSideDisplay();
+                    break;
+                case 'ArrowLeft':
+                    if (currentStage > 0) {
+                        setStage(currentStage - 1);
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (currentStage < stages.length - 1) {
+                        setStage(currentStage + 1);
+                    }
+                    break;
+            }
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>

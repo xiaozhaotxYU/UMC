@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辩论赛计时器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stage-display {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .current-stage {
+            font-size: 2.5em;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            padding: 15px 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: inline-block;
+        }
+
+        .timer-container {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-bottom: 40px;
+        }
+
+        .side-timer {
+            flex: 1;
+            max-width: 700px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 25px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .side-timer.positive {
+            border: 3px solid #00d4ff;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .side-timer.negative {
+            border: 3px solid #ff6b6b;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .side-timer.active-positive {
+            background: rgba(0, 212, 255, 0.15);
+            transform: scale(1.02);
+        }
+
+        .side-timer.active-negative {
+            background: rgba(255, 107, 107, 0.15);
+            transform: scale(1.02);
+        }
+
+        .side-name {
+            font-size: 2em;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .positive .side-name {
+            color: #00d4ff;
+        }
+
+        .negative .side-name {
+            color: #ff6b6b;
+        }
+
+        .timer-display {
+            font-size: 10em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            margin: 30px 0;
+            text-shadow: 0 0 30px currentColor;
+            transition: all 0.3s ease;
+        }
+
+        .positive .timer-display {
+            color: #00d4ff;
+        }
+
+        .negative .timer-display {
+            color: #ff6b6b;
+        }
+
+        .timer-display.warning {
+            color: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        .timer-display.danger {
+            color: #ff3838;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 35px;
+            font-size: 1.3em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #000;
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #6c757d, #545b62);
+            color: #fff;
+        }
+
+        .btn-switch {
+            background: linear-gradient(135deg, #7b2cbf, #5a189a);
+            color: #fff;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .stage-selector {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stage-btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stage-btn:hover, .stage-btn.active {
+            background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+            border-color: #9d4edd;
+            transform: scale(1.05);
+        }
+
+        .time-settings {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .setting-group {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px 30px;
+            border-radius: 15px;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #aaa;
+        }
+
+        .setting-group input {
+            width: 120px;
+            padding: 10px;
+            font-size: 1.5em;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        .setting-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .total-stats {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 1.2em;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .total-time-positive .stat-value {
+            color: #00d4ff;
+        }
+
+        .total-time-negative .stat-value {
+            color: #ff6b6b;
+        }
+
+        .keyboard-hint {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .timer-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .side-timer {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .timer-display {
+                font-size: 6em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>辩论赛计时器</h1>
+        </div>
+
+        <div class="stage-display">
+            <div class="current-stage" id="currentStage">开篇立论</div>
+        </div>
+
+        <div class="stage-selector">
+            <button class="stage-btn active" data-stage="0">开篇立论</button>
+            <button class="stage-btn" data-stage="1">攻辩环节</button>
+            <button class="stage-btn" data-stage="2">自由辩论</button>
+            <button class="stage-btn" data-stage="3">总结陈词</button>
+        </div>
+
+        <div class="time-settings">
+            <div class="setting-group">
+                <label>开篇立论 (分钟)</label>
+                <input type="number" id="setting-opening" value="3" min="1" max="30">
+            </div>
+            <div class="setting-group">
+                <label>攻辩环节 (分钟)</label>
+                <input type="number" id="setting-cross" value="3" min="1" max="30">
+            </div>
+            <div class="setting-group">
+                <label>自由辩论 (分钟)</label>
+                <input type="number" id="setting-free" value="4" min="1" max="30">
+            </div>
+            <div class="setting-group">
+                <label>总结陈词 (分钟)</label>
+                <input type="number" id="setting-closing" value="3" min="1" max="30">
+            </div>
+            <div class="setting-group">
+                <label>警告时间 (秒)</label>
+                <input type="number" id="setting-warning" value="30" min="10" max="120">
+            </div>
+        </div>
+
+        <div class="timer-container">
+            <div class="side-timer positive active-positive" id="positiveTimer">
+                <div class="side-name">正方</div>
+                <div class="timer-display" id="positiveTime">03:00</div>
+                <div class="timer-controls">
+                    <button class="btn btn-start" onclick="toggleTimer('positive')">开始</button>
+                    <button class="btn btn-reset" onclick="resetTimer('positive')">重置</button>
+                </div>
+            </div>
+
+            <div class="side-timer negative" id="negativeTimer">
+                <div class="side-name">反方</div>
+                <div class="timer-display" id="negativeTime">03:00</div>
+                <div class="timer-controls">
+                    <button class="btn btn-start" onclick="toggleTimer('negative')">开始</button>
+                    <button class="btn btn-reset" onclick="resetTimer('negative')">重置</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 30px;">
+            <button class="btn btn-switch" onclick="switchActiveSide()" style="font-size: 1.5em; padding: 20px 50px;">
+                切换当前计时方
+            </button>
+        </div>
+
+        <div class="total-stats">
+            <div class="stat-item total-time-positive">
+                <div class="stat-label">正方总用时</div>
+                <div class="stat-value" id="positiveTotal">00:00</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">当前阶段</div>
+                <div class="stat-value" id="stageCounter">1 / 4</div>
+            </div>
+            <div class="stat-item total-time-negative">
+                <div class="stat-label">反方总用时</div>
+                <div class="stat-value" id="negativeTotal">00:00</div>
+            </div>
+        </div>
+
+        <div class="keyboard-hint">
+            <p>快捷键：空格键 - 暂停/继续 | A - 正方计时 | D - 反方计时 | ← - 上一阶段 | → - 下一阶段</p>
+        </div>
+    </div>
+
+    <script>
+        const stages = [
+            { name: '开篇立论', defaultTime: 180 },
+            { name: '攻辩环节', defaultTime: 180 },
+            { name: '自由辩论', defaultTime: 240 },
+            { name: '总结陈词', defaultTime: 180 }
+        ];
+
+        let currentStage = 0;
+        let activeSide = 'positive';
+        let timers = {
+            positive: { time: 180, running: false, total: 0, interval: null },
+            negative: { time: 180, running: false, total: 0, interval: null }
+        };
+        let warningThreshold = 30;
+
+        function formatTime(seconds) {
+            const mins = Math.floor(Math.abs(seconds) / 60);
+            const secs = Math.abs(seconds) % 60;
+            return (seconds < 0 ? '-' : '') + 
+                   mins.toString().padStart(2, '0') + ':' + 
+                   secs.toString().padStart(2, '0');
+        }
+
+        function updateDisplay() {
+            document.getElementById('positiveTime').textContent = formatTime(timers.positive.time);
+            document.getElementById('negativeTime').textContent = formatTime(timers.negative.time);
+            document.getElementById('positiveTotal').textContent = formatTime(timers.positive.total);
+            document.getElementById('negativeTotal').textContent = formatTime(timers.negative.total);
+            document.getElementById('currentStage').textContent = stages[currentStage].name;
+            document.getElementById('stageCounter').textContent = (currentStage + 1) + ' / ' + stages.length;
+
+            updateTimerColor('positive');
+            updateTimerColor('negative');
+            updateActiveSideDisplay();
+        }
+
+        function updateTimerColor(side) {
+            const display = document.getElementById(side + 'Time');
+            const time = timers[side].time;
+            
+            display.classList.remove('warning', 'danger');
+            
+            if (time <= 10) {
+                display.classList.add('danger');
+            } else if (time <= warningThreshold) {
+                display.classList.add('warning');
+            }
+        }
+
+        function updateActiveSideDisplay() {
+            document.getElementById('positiveTimer').classList.toggle('active-positive', activeSide === 'positive');
+            document.getElementById('negativeTimer').classList.toggle('active-negative', activeSide === 'negative');
+        }
+
+        function startTimer(side) {
+            timers[side].interval = setInterval(() => {
+                timers[side].time--;
+                timers[side].total++;
+                updateDisplay();
+                
+                if (timers[side].time <= 0) {
+                    playSound();
+                }
+            }, 1000);
+        }
+
+        function stopTimer(side) {
+            if (timers[side].interval) {
+                clearInterval(timers[side].interval);
+                timers[side].interval = null;
+            }
+        }
+
+        function toggleTimer(side) {
+            timers[side].running = !timers[side].running;
+            
+            if (timers[side].running) {
+                startTimer(side);
+                if (side === activeSide) {
+                    document.querySelector(`#${side}Timer .btn-start`).textContent = '暂停';
+                }
+            } else {
+                stopTimer(side);
+                document.querySelector(`#${side}Timer .btn-start`).textContent = '开始';
+            }
+        }
+
+        function resetTimer(side) {
+            stopTimer(side);
+            timers[side].running = false;
+            timers[side].time = stages[currentStage].defaultTime;
+            document.querySelector(`#${side}Timer .btn-start`).textContent = '开始';
+            updateDisplay();
+        }
+
+        function switchActiveSide() {
+            activeSide = activeSide === 'positive' ? 'negative' : 'positive';
+            updateActiveSideDisplay();
+        }
+
+        function setStage(stageIndex) {
+            currentStage = stageIndex;
+            
+            document.querySelectorAll('.stage-btn').forEach((btn, index) => {
+                btn.classList.toggle('active', index === stageIndex);
+            });
+            
+            const defaultTime = stages[stageIndex].defaultTime;
+            timers.positive.time = defaultTime;
+            timers.negative.time = defaultTime;
+            
+            resetTimer('positive');
+            resetTimer('negative');
+            
+            updateDisplay();
+        }
+
+        function playSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function updateSettings() {
+            stages[0].defaultTime = parseInt(document.getElementById('setting-opening').value) * 60;
+            stages[1].defaultTime = parseInt(document.getElementById('setting-cross').value) * 60;
+            stages[2].defaultTime = parseInt(document.getElementById('setting-free').value) * 60;
+            stages[3].defaultTime = parseInt(document.getElementById('setting-closing').value) * 60;
+            warningThreshold = parseInt(document.getElementById('setting-warning').value);
+            
+            resetTimer('positive');
+            resetTimer('negative');
+        }
+
+        document.querySelectorAll('.stage-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setStage(parseInt(btn.dataset.stage));
+            });
+        });
+
+        document.querySelectorAll('.setting-group input').forEach(input => {
+            input.addEventListener('change', updateSettings);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    toggleTimer(activeSide);
+                    break;
+                case 'KeyA':
+                    activeSide = 'positive';
+                    updateActiveSideDisplay();
+                    break;
+                case 'KeyD':
+                    activeSide = 'negative';
+                    updateActiveSideDisplay();
+                    break;
+                case 'ArrowLeft':
+                    if (currentStage > 0) {
+                        setStage(currentStage - 1);
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (currentStage < stages.length - 1) {
+                        setStage(currentStage + 1);
+                    }
+                    break;
+            }
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
